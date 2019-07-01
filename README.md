@@ -3,7 +3,9 @@
 This is an opinionated [terraform](https://terraform.io) wrapper that eases integration with [Azure DevOps](https://dev.azure.com/) pipelines. The basic idea is that you can use the `run_tf.sh` to execute terraform deployments from a straight forward [Azure CLI Task](https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-cli?view=azure-devops) in Azure DevOps - no additional third party plugin required.
 
 
-## Installation - How to integrate with your Terraform Project? 
+## Installation 
+
+### How to integrate with your Terraform Project? 
 
 Download the latest release of `run_tf.sh` from the release section.
 
@@ -34,6 +36,51 @@ If you want to split your deployment into separate steps, structure it like this
 In simple terms, put the `run_tf.sh` script top level in your directory. The script will automatically detect terrafrom folders on the second level and will run `terraform plan` / `terraform apply` etc. from there. If you have separate terraform deployments, the script will execute them in natural sorting order. In this case best use a prefix like `01-` and `02-` to clearly state that.
 
 **Here is a repo with full sample: [https://github.com/olohmann/](https://github.com/olohmann/terraform-azuredevops-reference) **
+
+### Integration into Azure DevOps
+
+#### Build Pipeline for Validation (Optional)
+
+Integration into the build pipeline for validation and artefact passing is simple. You just need to hook up the `run_tf.sh` script with the parameters `-v` for validation only and `-f` for non-interactive.The `-d` flag will ensure that the right terraform version will be downloaded on the build agent.
+
+Here is a yaml dump of such a pipeline:
+
+```yaml
+steps:
+- task: AzureCLI@1
+  displayName: Validate
+  inputs:
+    azureSubscription: '<Azure Subscription Reference>'
+    scriptPath: 'run_tf.sh'
+    arguments: '-v -f -d'
+    addSpnToEnvironment: true
+```
+
+> **Please note**: It is important to use the Azure CLI task *and* selecting to pass the SPN details in the actual task (`addSpnToEnvironment: true`). This allows the `run_tf.sh` script to automatically detect that it is being used in combination with a service principal in an Azure CLI pipeline task.
+
+In addition, you can add as many `TF_VAR_`-prefixed variables as required to pass parameters to the terraform deployment. To override the location value, for example, you can pass a `TF_VAR_location` variable:
+
+```yaml
+variables:
+  TF_VAR_location: 'North Europe'
+```
+
+#### Release Pipeline
+
+As long as Azure DevOps is not supporting direct YAML integration, you have to setup the environment configuration manually or use the other import options in Azure DevOps.
+However, using `run_tf.sh`, the setup is straight and simple. Just use the Azure CLI task as in the optional build pipeline and make sure to set the `addSpnToEnvironment` to true. Only the arguments are different: `-e` for passing the environment name (like dev, qa, or prod) and again `-f` for non-interactive and `-d` to download.
+
+```yaml
+steps:
+- task: AzureCLI@1
+  displayName: 'Terraform Apply'
+  inputs:
+    azureSubscription: '<Azure Subscription Reference>'
+    scriptPath: '$(System.DefaultWorkingDirectory)/_terraform-reference/run_tf.sh'
+    arguments: '-e $(Release.EnvironmentName) -f -d'
+    addSpnToEnvironment: true
+    workingDirectory: '$(System.DefaultWorkingDirectory)/_terraform-reference'
+```
 
 ## Repo Contents
 
@@ -97,47 +144,4 @@ terraform {
 }
 ```
 
-## Integration into Azure DevOps
 
-### Build Pipeline for Validation (Optional)
-
-Integration into the build pipeline for validation and artefact passing is simple. You just need to hook up the `run_tf.sh` script with the parameters `-v` for validation only and `-f` for non-interactive.The `-d` flag will ensure that the right terraform version will be downloaded on the build agent.
-
-Here is a yaml dump of such a pipeline:
-
-```yaml
-steps:
-- task: AzureCLI@1
-  displayName: Validate
-  inputs:
-    azureSubscription: '<Azure Subscription Reference>'
-    scriptPath: 'run_tf.sh'
-    arguments: '-v -f -d'
-    addSpnToEnvironment: true
-```
-
-> **Please note**: It is important to use the Azure CLI task *and* selecting to pass the SPN details in the actual task (`addSpnToEnvironment: true`). This allows the `run_tf.sh` script to automatically detect that it is being used in combination with a service principal in an Azure CLI pipeline task.
-
-In addition, you can add as many `TF_VAR_`-prefixed variables as required to pass parameters to the terraform deployment. To override the location value, for example, you can pass a `TF_VAR_location` variable:
-
-```yaml
-variables:
-  TF_VAR_location: 'North Europe'
-```
-
-### Release Pipeline
-
-As long as Azure DevOps is not supporting direct YAML integration, you have to setup the environment configuration manually or use the other import options in Azure DevOps.
-However, using `run_tf.sh`, the setup is straight and simple. Just use the Azure CLI task as in the optional build pipeline and make sure to set the `addSpnToEnvironment` to true. Only the arguments are different: `-e` for passing the environment name (like dev, qa, or prod) and again `-f` for non-interactive and `-d` to download.
-
-```yaml
-steps:
-- task: AzureCLI@1
-  displayName: 'Terraform Apply'
-  inputs:
-    azureSubscription: '<Azure Subscription Reference>'
-    scriptPath: '$(System.DefaultWorkingDirectory)/_terraform-reference/run_tf.sh'
-    arguments: '-e $(Release.EnvironmentName) -f -d'
-    addSpnToEnvironment: true
-    workingDirectory: '$(System.DefaultWorkingDirectory)/_terraform-reference'
-```
