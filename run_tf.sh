@@ -4,7 +4,7 @@ set -o pipefail
 set -o nounset
 
 # Script Versioning
-TF_SCRIPT_VERSION=1.3.0
+TF_SCRIPT_VERSION=1.3.1
 
 # Minimal Terraform Version for compatibility.
 TF_MIN_VERSION=0.12.3
@@ -514,7 +514,6 @@ done < ${deployments_temp_file}
 rm ${deployments_temp_file}
 
 # Run through the array of deployments and issue the terraform validate/plan/apply process.
-# TODO: Empty results.
 for deployment in "${deployments[@]}"
 do
     .log 6 "[==== Running Deployment: ${deployment} ====]"

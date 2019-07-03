@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ----------------
+## [1.3.1] - 2019-07-03
+
+### Added
+
+### Removed
+
+### Changed
+- Code cosmetics
 
 ## [1.3.0] - 2019-07-03
 
