@@ -1,0 +1,29 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  name: Hosted Ubuntu 1604
+
+steps:
+- bash: |
+   echo "------------------------------------"
+   cat run_tf.sh | grep 'TF_SCRIPT_VERSION=.*'
+   eval "export $(cat run_tf.sh | grep 'TF_SCRIPT_VERSION=.*') && echo $TF_SCRIPT_VERSION"
+   echo "##vso[task.setvariable variable=TF_SCRIPT_VERSION]$TF_SCRIPT_VERSION"
+   echo "------------------------------------"
+   
+  displayName: 'Determine and export TF_SCRIPT_VERSION'
+
+- task: GitHubRelease@0
+  displayName: 'Create GitHub Release'
+  inputs:
+    gitHubConnection: 'github-olohmann'
+    tagSource: manual
+    tag: '$(TF_SCRIPT_VERSION)'
+    title: 'Release $(TF_SCRIPT_VERSION)'
+    assets: 'run_tf.sh'
