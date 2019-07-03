@@ -7,13 +7,23 @@ trigger:
 - master
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: Hosted Ubuntu 1604
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- bash: |
+   echo "------------------------------------"
+   cat run_tf.sh | grep 'TF_SCRIPT_VERSION=.*'
+   eval "export $(cat run_tf.sh | grep 'TF_SCRIPT_VERSION=.*') && echo $TF_SCRIPT_VERSION"
+   echo "##vso[task.setvariable variable=TF_SCRIPT_VERSION]$TF_SCRIPT_VERSION"
+   echo "------------------------------------"
+   
+  displayName: 'Determine and export TF_SCRIPT_VERSION'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- task: GitHubRelease@0
+  displayName: 'Create GitHub Release'
+  inputs:
+    gitHubConnection: 'github-olohmann'
+    tagSource: manual
+    tag: '$(TF_SCRIPT_VERSION)'
+    title: 'Release $(TF_SCRIPT_VERSION)'
+    assets: 'run_tf.sh'
