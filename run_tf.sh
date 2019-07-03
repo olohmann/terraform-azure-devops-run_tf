@@ -4,7 +4,7 @@ set -o pipefail
 set -o nounset
 
 # Script Versioning
-TF_SCRIPT_VERSION=1.2.1
+TF_SCRIPT_VERSION=1.3.0
 
 # Minimal Terraform Version for compatibility.
 TF_MIN_VERSION=0.12.3
@@ -304,13 +304,20 @@ function ensure_terraform_backend() {
       --encryption-service "blob" \
       --encryption-service "file" \
       --https-only "true" \
-      --default-action "Deny" \
+      --default-action "Allow" \
       --bypass "None" \
       --output none
 
     local RT_BACKEND_ACCESS_KEY=$(az storage account keys list --account-name ${RT_BACKEND_STORAGE_ACC_NAME} | jq -r '.[0].value' | tr -d '\n')
+    .log 6 "Creating container for state storage..."
+    az storage container create \
+      --account-name "${RT_BACKEND_STORAGE_ACC_NAME}" \
+      --account-key "${RT_BACKEND_ACCESS_KEY}" \
+      --name "${RT_BACKEND_STORAGE_ACC_CONTAINER_NAME}" \
+      --public-access "off" \
+      --auth-mode key \
+      --output none
 
-    # Drop all existing network rules...
     .log 6 "Dropping existing network rules..."
     local RT_EXISTING_NETWORK_RULES=$(az storage account network-rule list --account-name ${RT_BACKEND_STORAGE_ACC_NAME} | jq -r '.ipRules[].ipAddressOrRange')
     while read -r entry; do
@@ -321,19 +328,14 @@ function ensure_terraform_backend() {
          --output none
     done <<< "${RT_EXISTING_NETWORK_RULES}"
 
-    az storage account network-rule add \
-      --resource-group "${RT_BACKEND_RESOURCE_GROUP_NAME}" \
-      --account-name "${RT_BACKEND_STORAGE_ACC_NAME}" \
-      --ip-address "${CURRENT_IP}" \
-      --output none
-
     local RT_NEW_NETWORK_RULES=$(echo -n "${RT_BACKEND_STORAGE_ACC_NETWORK_RULES}" | tr ',' '\n')
     while read -r entry; do
-        .log 6 "Adding FW exception for ${entry}"
-        if [[ "$entry" == "${CURRENT_IP}" ]]; then
-            .log 4 "Skipping ${CURRENT_IP} (already configured)"
-            KEEP_CURRENT_IP=true
+        if [[ ${entry} =~ ^\ +$ ]]; then
+            .log 6 "No additional network rule changes required."
+        elif [[ -z "${entry}" ]]; then
+            .log 6 "No additional network rule changes required."
         else
+            .log 6 "Adding FW exception for '${entry}'"
             az storage account network-rule add \
                 --resource-group "${RT_BACKEND_RESOURCE_GROUP_NAME}" \
                 --account-name "${RT_BACKEND_STORAGE_ACC_NAME}" \
@@ -342,21 +344,9 @@ function ensure_terraform_backend() {
         fi
     done <<< "${RT_NEW_NETWORK_RULES}"
 
-    az storage container create \
-      --account-name "${RT_BACKEND_STORAGE_ACC_NAME}" \
-      --account-key "${RT_BACKEND_ACCESS_KEY}" \
-      --name "${RT_BACKEND_STORAGE_ACC_CONTAINER_NAME}" \
-      --public-access "off" \
-      --auth-mode key \
-      --output none
-
     # Set Global variable
     BACKEND_CONFIG="-backend-config 'resource_group_name=${RT_BACKEND_RESOURCE_GROUP_NAME}' -backend-config 'storage_account_name=${RT_BACKEND_STORAGE_ACC_NAME}' -backend-config 'container_name=${RT_BACKEND_STORAGE_ACC_CONTAINER_NAME}' -backend-config 'access_key=${RT_BACKEND_ACCESS_KEY}'"
-    if [[ $KEEP_CURRENT_IP = true ]]; then
-        UNSET_BACKEND_DEPLOY_IP="echo 'Skipping removal of backend IP'"
-    else
-        UNSET_BACKEND_DEPLOY_IP="az storage account network-rule remove --resource-group ${RT_BACKEND_RESOURCE_GROUP_NAME} --account-name ${RT_BACKEND_STORAGE_ACC_NAME} --ip-address ${CURRENT_IP} --output none"
-    fi
+    UNSET_BACKEND_DEPLOY_IP="az storage account update --name \"${RT_BACKEND_STORAGE_ACC_NAME}\" --default-action \"Deny\" --output none"
 }
 
 function run_terraform() {
