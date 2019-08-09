@@ -4,10 +4,10 @@ set -o pipefail
 set -o nounset
 
 # Script Versioning
-TF_SCRIPT_VERSION=1.3.2
+TF_SCRIPT_VERSION=1.3.3
 
 # Minimal Terraform Version for compatibility.
-TF_MIN_VERSION=0.12.5
+TF_MIN_VERSION=0.12.6
 
 HASHICORP_GPG_SIG_FILE=$(mktemp)
 
@@ -199,7 +199,7 @@ function get_abs_filename() {
 
 function set_tf_output() {
     # Transform terraform outputs to environment vars with __TF_ prefix, that will be transferred to dependant sub-deployments.
-    eval $(${TERRAFORM_PATH} output -json | python -c 'import sys, json; tf_output = json.load(sys.stdin); sys.stdout.write(";".join(map(lambda key: "export TF_VAR_{key}=\"{value}\"".format(key=key, value=tf_output[key]["value"]), tf_output.keys())))')
+    eval $(${TERRAFORM_PATH} output -json | jq -r 'with_entries(select(.value.value!=""))' | python -c 'import sys, json; tf_output = json.load(sys.stdin); sys.stdout.write(";".join(map(lambda key: "export TF_VAR_{key}=\"{value}\"".format(key=key, value=tf_output[key]["value"]), tf_output.keys())))')
 }
 
 # Automatically finds all subfolders to "run_tf.sh" that have *.tf files.

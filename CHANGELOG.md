@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ----------------
+## [1.3.3] - 2019-08-09
+
+### Added
+
+### Removed
+
+### Changed
+- Ignore empty terraform output values. These are no longer automatically converted to environment variable params.
+
+
 ## [1.3.2] - 2019-07-31
 
 ### Added
