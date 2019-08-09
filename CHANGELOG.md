@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ----------------
+## [1.4.0] - 2019-08-09
+
+### Added
+- Added support for deployment-local *.tfvars and *.tfvars.json files. Just drop them to a module (e.g. 01-sample/foo.tfvars) and they are automatically picked up.
+
+### Removed
+
+### Changed
+
+
 ## [1.3.3] - 2019-08-09
 
 ### Added

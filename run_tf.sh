@@ -4,7 +4,7 @@ set -o pipefail
 set -o nounset
 
 # Script Versioning
-TF_SCRIPT_VERSION=1.3.3
+TF_SCRIPT_VERSION=1.4.0
 
 # Minimal Terraform Version for compatibility.
 TF_MIN_VERSION=0.12.6
@@ -364,6 +364,9 @@ function run_terraform() {
     rm -rf .terraform/terraform.tfstate.d/
     rm -f .terraform/environment
 
+    local TF_VAR_FILE_ARGS=$(python -c 'import sys;from glob import glob;files=glob("*.tfvars") + glob("*.tfvars.json");sys.stdout.write(" ".join(map(lambda x: "-var-file={x}".format(x=x), files)))')
+    .log 6 "Detected the following tfvars files: ${TF_VAR_FILE_ARGS}"
+
     # Init with Backend config.
     eval $(printf "${TERRAFORM_PATH} init %s -no-color" "${BACKEND_CONFIG}")
 
@@ -385,7 +388,7 @@ function run_terraform() {
     fi
 
     if [ ${RT_VALIDATE_ONLY} = false ]; then
-        ${TERRAFORM_PATH} plan -no-color -input=false -out=terraform.tfplan
+        ${TERRAFORM_PATH} plan -no-color -input=false -out=terraform.tfplan $(echo -n ${TF_VAR_FILE_ARGS})
 
         if [ "${f}" = true ]; then
             ${TERRAFORM_PATH} apply -no-color terraform.tfplan
