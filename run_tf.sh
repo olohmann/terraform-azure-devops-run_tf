@@ -4,7 +4,7 @@ set -o pipefail
 set -o nounset
 
 # Script Versioning
-TF_SCRIPT_VERSION=1.4.0
+TF_SCRIPT_VERSION=1.4.1
 
 # Minimal Terraform Version for compatibility.
 TF_MIN_VERSION=0.12.6
@@ -308,6 +308,8 @@ function ensure_terraform_backend() {
       --bypass "None" \
       --output none
 
+    .log 6 "Sleeping for 5secs to assure Azure Storage Update..."
+    sleep 5
     local RT_BACKEND_ACCESS_KEY=$(az storage account keys list --account-name ${RT_BACKEND_STORAGE_ACC_NAME} | jq -r '.[0].value' | tr -d '\n')
     .log 6 "Creating container for state storage..."
     az storage container create \

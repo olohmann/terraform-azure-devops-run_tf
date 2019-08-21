@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ----------------
+## [1.4.1] - 2019-08-21
+
+### Added
+
+### Removed
+
+### Changed
+- Sleep after CreateOrUpdate on Azure Storage account.
+
 ## [1.4.0] - 2019-08-09
 
 ### Added
