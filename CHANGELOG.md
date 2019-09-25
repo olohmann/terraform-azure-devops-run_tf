@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ----------------
+## [1.4.2] - 2019-09-25
+
+### Added
+
+### Removed
+
+### Changed
+- Bump to Terraform 0.12.9
+
 ## [1.4.1] - 2019-08-21
 
 ### Added

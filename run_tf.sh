@@ -4,10 +4,10 @@ set -o pipefail
 set -o nounset
 
 # Script Versioning
-TF_SCRIPT_VERSION=1.4.1
+TF_SCRIPT_VERSION=1.4.2
 
 # Minimal Terraform Version for compatibility.
-TF_MIN_VERSION=0.12.6
+TF_MIN_VERSION=0.12.9
 
 HASHICORP_GPG_SIG_FILE=$(mktemp)
 
