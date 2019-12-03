@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ----------------
+## [1.4.2] - 2019-12-03
+
+### Added
+
+### Removed
+
+### Changed
+- Bump to Terraform 0.12.17
+- Run Terraform validate without backend.
+
+
 ## [1.4.2] - 2019-09-25
 
 ### Added

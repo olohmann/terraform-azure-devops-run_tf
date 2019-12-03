@@ -4,10 +4,10 @@ set -o pipefail
 set -o nounset
 
 # Script Versioning
-TF_SCRIPT_VERSION=1.4.2
+TF_SCRIPT_VERSION=1.5.0
 
 # Minimal Terraform Version for compatibility.
-TF_MIN_VERSION=0.12.9
+TF_MIN_VERSION=0.12.17
 
 HASHICORP_GPG_SIG_FILE=$(mktemp)
 
@@ -367,10 +367,13 @@ function run_terraform() {
     rm -f .terraform/environment
 
     local TF_VAR_FILE_ARGS=$(python -c 'import sys;from glob import glob;files=glob("*.tfvars") + glob("*.tfvars.json");sys.stdout.write(" ".join(map(lambda x: "-var-file={x}".format(x=x), files)))')
-    .log 6 "Detected the following tfvars files: ${TF_VAR_FILE_ARGS}"
 
     # Init with Backend config.
-    eval $(printf "${TERRAFORM_PATH} init %s -no-color" "${BACKEND_CONFIG}")
+    if [ ${RT_VALIDATE_ONLY} = false ]; then
+        eval $(printf "${TERRAFORM_PATH} init %s -no-color" "${BACKEND_CONFIG}")
+    else
+        eval $(printf "${TERRAFORM_PATH} init -backend=false -no-color")
+    fi
 
     TF_WORKSPACE=$(${TERRAFORM_PATH} workspace show)
     .log 6 "Current Workspace: ${TF_WORKSPACE}"
@@ -405,7 +408,10 @@ function run_terraform() {
     else
         ${TERRAFORM_PATH} validate -no-color
     fi
-    set_tf_output
+
+    if [ ${RT_VALIDATE_ONLY} = false ]; then
+        set_tf_output
+    fi
     popd
 }
 
@@ -492,10 +498,13 @@ if [ "${p}" = true ]; then
     env
 fi
 
-ensure_subription_context
-
-.log 6 "[==== Ensure Terraform State Backend  ====]"
-ensure_terraform_backend
+if [ ${v} = false ]; then
+    ensure_subription_context
+    .log 6 "[==== Ensure Terraform State Backend  ====]"
+    ensure_terraform_backend
+else
+    .log 6 "[==== Validate Only - Using no Azure State Management  ====]"
+fi
 
 # Need OS version to control BSD/Linux sed flags which are used in next steps.
 os_version=$(get_os)
@@ -521,7 +530,7 @@ rm ${deployments_temp_file}
 # Run through the array of deployments and issue the terraform validate/plan/apply process.
 for deployment in "${deployments[@]}"
 do
-    .log 6 "[==== Running Deployment: ${deployment} ====]"
+    .log 6 "[==== Processing Sub-Project: ${deployment} ====]"
     run_terraform ${v} ${e} "${deployment}"
 done
 
